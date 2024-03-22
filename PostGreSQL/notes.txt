@@ -1,0 +1,434 @@
+regex:
+https://www.postgresql.org/docs/current/functions-matching.html
+
+joins:
+https://blog.codinghorror.com/a-visual-explanation-of-sql-joins/
+
+different templates for date/time formats:
+https://www.postgresql.org/docs/16/functions-formatting.html
+
+date time docs:
+https://www.postgresql.org/docs/current/functions-datetime.html
+
+mathematical functions:
+https://www.postgresql.org/docs/16/functions.html
+
+string functions:
+https://www.postgresql.org/docs/16/functions-string.html
+
+
+SELECT <col> FROM <table> # basic column
+
+SELECT <column1>, <col2>..., FROM <table name> # returns the columns specified from table
+
+ORDER BY <col> ASC/DESC,  <col2> ASC/DESC, <col3> ASC/DESC # orders info in ascending/descending order, you can also sort by columns that you dont select but its better to have it
+
+SELECT DISTINCT <col> FROM <table> #returns the different entries that arent duplicate in table
+#or for legability/ease of use
+SELECT DISTINCT(<col>) FROM <table>
+
+SELECT COUNT(<col>) FROM <table> #returns the number of items of column in table
+
+SELECT COUNT(DISTINCT(<col>)) FROM <table> # returns number of unique items in column in table
+
+SELECT WHERE # has comparison operators, = equal > graeter than < less than >= greater than or equal to <= less than or equal to <> or != not equal to
+
+SELECT <col1> <col2>... FROM <table> WHERE <col you want to apply condition to> {condition} # returns selected columns where condition is applied to column from table
+ex: SELECT title, rental_rate FROM film WHERE rental_rate <= 3
+
+SELECT <col1> <col2>... FROM <table> WHERE <col you want to apply condition to> {condition} and {condition2} and {con3}.... # you can chain conditions
+
+LIMIT # goes at the end of the command, as its the final command and cuts out data that surpasses the amount requested
+SELECT <column1> FROM <table> LIMIT 10 # will give us the first 10 rows
+SELECT * FROM payment ORDER BY payment_date DESC LIMIT 10 # gives the most recent 10 transactions within context
+
+SELECT <column1> FROM <table> WHERE <col> BETWEEN val1 AND val2 # it works for dates also in format 'YYYY-MM-DD', keep in mind end date goes upp to 00:00 time only
+SELECT <column1> FROM <table> WHERE <col> NOT BETWEEN val1 AND val2 #i.e. if you want info between 12 nov and 14 nov, you need to put 15 nov as end date
+
+SELECT <col> FROM <table> WHERE <col> IN <val you are looking to match> # returns items from col where they match the values provided from in
+SELECT <col> FROM <table> WHERE <col> NOT IN <val you are looking to match> # does the same but returns items that arent in val
+
+SELECT <col> FROM <table> LIKE '%gmail.com' # returns all strings with gmail.com at the end, % matches any sequence of characters
+
+SELECT <col> FROM <table> LIKE 'Mission Impossible _' # means it will only be the _ being replaced, _ matches one character
+
+you can mix and match wildcards:
+WHERE name LIKE '_her%' # name will be one opening character, followed by her, followed by any number of characters
+you can also use ilike if you want the string like to be case insensitive
+or you can sandwhich it as '%er%' to return names with er at any point in their name
+you can use it in tandem with not to look for data that doesnt include the like
+
+data types:
+boolean: true or false
+character: char, varchar, text
+numeric: integet, float
+temporal: date, time. timestamp, interval
+uuid: universally unique identifiers
+array
+json
+hstore key value pair
+special types: network addresses, geometric data
+
+constraints:
+2 types, column & table constraints
+column constraints:
+not null: ensures column isnt null
+unique: ensures all values in column are different
+primary key: uniquely identifies each row/record in db
+foreign key: constrains data based on columns in other tables
+check: ensures all values in a column satify certain conditions
+exclusion: if any 2 rows are compared on the specified column or expression using the specified operator, not all of these comparisons will return true
+
+table constraints:
+check(condition): to check a condition when inserting or updating data references : to constrain the value stored in the column that must exists in a column in another table
+unique(column_list): forces the values stored in the columns listed inside the brackets to be unique
+primary key(column_list): allows you to define the primary key that consists of multiple columns
+
+example table creation & linking:
+CREATE TABLE account(
+	user_id SERIAL PRIMARY KEY,
+	username VARCHAR(50) UNIQUE NOT NULL,
+	password VARCHAR(50) NOT NULL,
+	email VARCHAR(250) UNIQUE NOT NULL,
+	created_on TIMESTAMP NOT NULL,
+	last_login TIMESTAMP
+)
+
+CREATE TABLE job(
+	job_id SERIAL PRIMARY KEY,
+	job_name VARCHAR(200) UNIQUE NOT NULL
+)
+
+CREATE TABLE account_job(
+	user_id INTEGER REFERENCES account(user_id),
+	job_id INTEGER REFERENCES job(job_id),
+	hire_date TIMESTAMP
+)
+
+inserting data:
+INSERT INTO account(username, password, email, created_on) VALUES ('jose', 'password', 'jose@mail.com', current_timestamp)
+INSERT INTO job(job_name) VALUES ('President')
+
+connection insert:
+INSERT INTO account_job(user_id, job_id, hire_date) VALUES (1, 1, CURRENT_TIMESTAMP)
+
+to update:
+UPDATE account SET last_login = CURRENT_TIMESTAMP;
+
+update join:
+UPDATE account_job SET hire_date = account.created_on FROM account WHERE account_job.user_id = account.user_id
+# updates hire_date in account_job to created_on inside account table, and where the id's match up from user_id in account_job and account
+
+update using return command:
+UPDATE account SET last_login = CURRENT_TIMESTAMP RETURNING email, created_on, last_login
+# updates account last_login to current_timestamp and returns columns specified <email, created_on, last_login> 
+
+DELETE FROM <table> # deletes the entire contents of table
+DELETE FROM <table> WHERE <col> = <condition> # deletes based on condition
+DELETE FROM job WHERE <job_name> = <'cowboy'> # deletes cowboy from job table
+
+deleting based on presence in other tables:
+DELETE FROM <tableA> USING <tableB> WHERE tableA.id = tableB.id
+
+Alter is used to add drop or renaming columns. change data types and setting constants, check constraints and renaming table
+ALTER TABLE <table_name> # the base command
+
+ALTER TABLE <table_name> RENAME TO <new_name>
+
+ADD COLUMN new_col TYPE # to add new column
+DROP COLUMN <col_name> # drops the column
+
+ALTER TABLE <table_name> # the base command, followed by:
+ALTER COLUMN <col_name> # to execute an action from below
+	SET DEFAULT value #implement this to have a default value to act as an initial entry to column
+	DROP DEFAULT # removes default value
+	SET NOT NULL # prevents column from being a blank entry
+	DROP NOT NULL # drops not null constraints
+	ADD CONSTRAINT <constraint_name> # add a constraint using the name like check constraint
+
+ALTER TABLE <table_name>
+DROP COLUMN IF EXISTS <col_name>
+#drops the column if it exists, think of it as error catching
+
+check constraint:
+create table employees(
+	emp_id serial primary key,
+	first_name varchar(50) not null,
+	last_name varchar(50) not null,
+	birthdate date check (birthdate > '1900-01-01'), # checks birthdate is greaater than (after) 1900-01-01
+	hire_date date check (hire_date > birthdate), # checks hire date is post birthdate
+	salary integer check (salary > 0) # ensures salary cannot be 0
+)
+
+
+aggregate function:
+takes multiple inputs and returns one output:
+ROUND(<column>, <digits to round to>) # rounds to the number of specified digits
+AVG(<column>) # returns average value, gives float
+COUNT(<column>) # returns the number of values
+MAX(<column>) # returns maximum value
+MIN(<column>) # returns minimum value
+SUM(<column>) # returns the sum of all values
+
+only happens when using select or have in
+
+group by is suitable for grouping similar types, i.e. cabins in planes, first class, business, economy, etc.
+GROUP BY needs to appear right after a FROM or WHERE statement
+
+items from SELECT need to come up in GROUP BY:
+SELECT company, division, SUM(sales) FROM finance_table GROUP BY company, division # groups the sum of total sales for each company and their divisions
+
+SELECT customer_id FROM payment GROUP BY customer_id # gets all the customer ids, almost a distinct function in this case
+SELECT customer_id, SUM(amount) FROM payment GROUP BY customer_id ORDER BY SUM(amount) # checks the most spending customers
+
+SELECT staff_id, COUNT(amount) FROM payment GROUP BY staff_id # returns the staff id and corresponding number of sales as it GROUPs the count of ''payments' made by them
+SELECT staff_id, COUNT(*) FROM payment GROUP BY staff_id # returns the staff id and corresponding number of rows as it GROUPs the count of ''payments' made by them
+
+SELECT rating, AVG(replacement_cost) FROM film GROUP BY rating # returns average replacement cost for each movie rating
+
+select customer_id, sum(amount) from payment GROUP BY customer_id ORDER BY SUM(amount) DESC LIMIT 5 # returms the top spending 5 customers, and the amount they spent as well as their id
+
+SELECT customer_id, SUM(amount) FROM payment WHERE customer_id > 100 GROUP BY customer_ID ORDER BY customer_id ASC # ordering template
+
+having clause allows you to filter post aggregation, so after group by
+
+SELECT customer_id, SUM(amount) FROM payment GROUP BY customer_id HAVING SUM(amount) > 100 # groups the spendings from customer id to one, and then returns ones which have a total sum spent over 100
+
+select store_id, count(customer_id) from customer group by store_id having count(customer_id) > 300 # returns store ids that have over 300 customers associated with that store
+
+SELECT facid, SUM(slots) AS total_slots
+FROM cd.bookings
+GROUP BY facid
+HAVING SUM(slots) > 1000
+ORDER BY facid
+
+AS clause:
+gives a temporay name to a column to use during output
+
+SELECT amount AS rental_price FROM payment # displays the amount column under rental_price column
+# however it cannot be used as a parameter in any other use outside of SELECT, useful for when you cant see query/need more context. makes columns easier to interpret
+# this is due to alias being applied after all operations are done, so they arent suitable for filtering
+
+inner join:
+SELECT payment_id, payment.customer_id, first_name # if a column name exists in both tables, you need to specify which table it is fetching info from, if it is unique you can use regular name
+FROM payment
+INNER JOIN customer # joins information where both payment and customer tables overlap
+ON payment.customer_id = customer.customer_id # the tables to join
+
+full outer join:
+SELECT * FROM customer
+FULL OUTER JOIN payment
+ON customer.customer_id = payment.customer_id
+# this returns all columns for customer and payment combined
+# every single row in every single table
+WHERE customer.customer_id IS null
+OR payment.payment_id IS null
+# filter shows informaton that has null values (no payment or customer id)
+
+left outer join:
+# treat as venn, takes contents from A and the intersection, but not B, and order matters
+# you can use it with a WHERE statement to get rows unique to table A, ignoring intersection and table B
+SELECT film.film_id, title, inventory_id, store_id #title, inventory_id, store_id is all unique so you dont need to specify the table
+FROM film # this is the left part to base the query upon
+LEFT OUTER JOIN inventory ON #you can also just say LEFT JOIN, they're the same syntax wise
+inventory.film_id = film.film_id # the order here doesnt matter
+
+#gives the movies that are in the film table but do not exist in inventory as you will get NULL in inventory_id and store_id
+SELECT film.film_id, title, inventory_id, store_id
+FROM film
+LEFT OUTER JOIN inventory ON
+inventory.film_id = film.film_id
+WHERE inventory.film_id IS NULL 
+
+right join:
+# identical to left join, just bases it on the 'right venn diagram'
+RIGHT OUTER JOIN
+RIGHT JOIN
+# you can also replace the left table with right table and you will get results as though youre doing a right join
+
+union:
+table1					table2
+name		amount		name		amount
+david		100			david		200
+claire		50			claier		100
+
+SELECT * FROM table1 UNION SELECT * FROM table2
+
+table1
+name		amount
+david		100
+claire		50
+david		200
+claire		100
+
+SELECT * FROM table1 UNION SELECT * FROM table2 ORDER BY name
+name		amount
+david		100
+david		200
+claire		50
+claire		100
+
+SELECT email, district FROM address
+INNER JOIN customer ON
+address.address_id = customer.address_id
+WHERE district = 'California'
+# this fetches all customers emails living in california
+
+# To view the movies made by one actor
+SELECT film.title, actor.first_name, actor.last_name
+FROM actor
+INNER JOIN film_actor ON
+	actor.actor_id = film_actor.actor_id
+INNER JOIN film ON
+	film_actor.film_id = film.film_id
+WHERE
+	actor.first_name = 'Nick'
+AND 
+	actor.last_name = 'Wahlberg'
+
+# when doing 3 way joins write it down and work through it section by section to abstract the issue
+
+
+different ways to store dates&time:
+TIME - contains only time
+DATE - contains only date
+TIMESTAMP - contains only date and time
+TIMESTAMPTZ - containts date time and timezone
+
+you can enter date&time via:
+TIMEZONE 
+NOW 
+TIMEOFDAY
+CURRENT_TIME
+CURRENT_DATE
+
+SHOW ALL # gives list of all settings and parameters that are being used/preset
+SHOW TIMEZONE # gives current timezone 
+SELECT NOW() # gives current timestamp
+SELECT TIMEOFDAY() # gives long hand/string notation of date and time
+SELECT CURRENT_TIME # gives current time
+SELECT CURRENT_DATE # gives current date 
+
+EXTRACT() allows you to extract or obtain a sub-component of a date value such as:
+	YEAR
+	MONTH
+	DAY
+	WEEK 
+	QUARTER
+example usage:
+EXTRACT(YEAR FROM date_col)
+SELECT EXTRACT(YEAR FROM payment_date) AS year FROM payment # gets list of years transactions were made and displays them AS year
+
+AGE()
+Calculates and returns the current age in relation to a timestamp given
+usage:
+AGE(date_col) 
+SELECT AGE(payment_date) FROM payment
+
+TO_CHAR() is a general way to convert data types to text, not limited to timestamps
+usage:
+TO_CHAR(date_col, 'mm-dd-yyyy')
+SELECT TO_CHAR(payment_date, 'MONTH YY') FROM payment # returns payemnt dates in format of FEBRUARY 07
+SELECT TO_CHAR(payment_date, 'DD/MM/YY') FROM payment # returns in 15/02/07
+# use documentation to experiment with it
+
+
+maths operators:
+SELECT ROUND(rental_rate/replacement_cost, 2)*100 AS percent_cost FROM film
+divides the rental_rate by replacement_cost, rounds it to 2dp. and multiplies it by 100, and displays it under percent_cost column
+
+
+string operators:
+SELECT LENGTH(first_name) FROM customer # gets the length of customers names
+SELECT first_name || ' ' || last_name FROM customer # concatonates first_name, space, last_name into one column. you need to concatonate space or they will be mushed
+SELECT UPPER(first_name) from customer # makes first name all capitals
+
+subqueries:
+SELECT student, grade
+FROM test_scores
+WHERE grade > (SELECT AVG(grade) # you bring in another query to compare against, similar to maths brackets get done first
+FROM test_scores)
+# you can use comparison as there is one result or youll have to use in
+
+
+SELECT student, grade
+FROM test_scores
+WHERE student IN
+(SELECT student FROM honor_roll_table)
+# you can mix and match when doing subqueries
+
+using join and multiple data as subquery:
+SELECT film_id, title FROM film
+WHERE film_id IN(
+	SELECT inventory.film_id FROM rental
+	INNER JOIN inventory ON
+	inventory.inventory_id = rental.inventory_id
+	WHERE return_date BETWEEN '2005-05-29' AND '2005-05-30')
+ORDER BY film_id DESC
+
+# gets all the film ids that have been returned during given date
+# and searches film where film id matches and returns titles
+# and returns and orders it
+
+
+SELECT first_name, last_name
+FROM customer AS c
+WHERE EXISTS
+	(SELECT * FROM payment as P
+	WHERE p.customer_id = c.customer_id
+	AND amount > 11)
+
+# checks if customers that spent at least 11 dollars exist, and returns their first and last name
+
+
+self join:
+useful or comparing values within the same table
+a join of 2 copies of same table
+but you need to use alias (AS) or it will be ambiguous
+
+SELECT tableA.col, tableB.col
+FROM table AS tableA
+JOIN table as tableB ON
+tableA.col1 = tableB.col2
+
+# assigns table to tableA and tableB, and allows you to compare them when you use conditions and aggregate functions
+
+SELECT f1.title, f2.title, f1.length # select title from film table1, film table2 and the length of film table1
+FROM film AS f1 # fetches the info from film table, but it is now addressed as f1
+INNER JOIN film AS f2 ON # initiates the join command and addresses the 'duplicate' film table as f2
+f1.film_id != f2.film_id # avoids matching the same film with to the same film from duplicate table	
+AND f1.length = f2.length # second condition where the different film_id's from above are matched with the same movie length
+
+-----
+
+SELECT joindate FROM cd.members
+ORDER BY joindate DESC
+LIMIT 1
+
+# this is one way to get the latest time a member joins the resort
+
+SELECT MAX(joindate) AS latest_signup FROM cd.members
+# this is another way as the later date will be the 'maximum' value, it is returned labeled as signup date
+
+Views:
+useful for having queries as a 'shortcut'
+SELECT * FROM view
+
+it is a virtual table, the query is stored as a fake table, and makes it easier to execute operations on it
+you can alter and update existing views
+especcially suitable for complex joins that are called regularly
+
+CREATE OR REPLACE VIEW customer_info AS
+SELECT first_name, last_name, address, district FROM customer
+INNER JOIN address
+ON customer.address_id = address.address_id
+
+you can refer to this as customer_info, this is your new virtual table
+
+DROP VIEW
+# drops the view
+DROP VIEW IF EXISTS
+# drops view if it existst only
+
+ALTER VIEW customer_info RENAME TO c_info
+# renames the view
